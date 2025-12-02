@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from config import CONFIG
+import random
 from gp_core import (
     RNG,
     Individual,
@@ -16,12 +18,12 @@ from fitness import (
 
 
 def evolve(
-    generations=10,
-    pop_size=30,
-    max_depth=5,
-    crossover_rate=0.8,
-    mutation_rate=0.2,
-    tournament_k=3,
+    generations=CONFIG["generations"],
+    pop_size=CONFIG["pop_size"],
+    max_depth=CONFIG["max_depth"],
+    crossover_rate=CONFIG["crossover_rate"],
+    mutation_rate=CONFIG["mutation_rate"],
+    tournament_k=CONFIG["tournament_k"],
 ):
     # random subset of secrets for training, from the ONLINE list
     train_secrets = RNG.sample(SECRET_WORDS, TRAIN_SAMPLE_SIZE)
@@ -73,7 +75,7 @@ def evolve(
 
 def demo_game(best_individual):
     """Play one demo game against a random secret from the ONLINE list."""
-    secret = RNG.choice(SECRET_WORDS)
+    secret = random.choice(SECRET_WORDS)  # uses system-random seed
     print("\n=== Demo game with evolved solver ===")
     print("(Secret word is hidden until the end)")
 
@@ -84,16 +86,12 @@ def demo_game(best_individual):
     )
 
     if guesses_used >= FAIL_PENALTY:
-        print("Failed to solve within 6 guesses.")
+        print(f"Failed to solve within {CONFIG['max_guesses']} guesses.")
     else:
         print(f"SOLVED in {int(guesses_used)} guesses!")
     print(f"Secret was: {secret}")
 
 
 if __name__ == "__main__":
-    best = evolve(
-        generations=10,   # you can increase this later
-        pop_size=30,
-        max_depth=5,
-    )
+    best = evolve()
     demo_game(best)

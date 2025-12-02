@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import math
 
+from config import CONFIG
 from online_vocab import ALLOWED_GUESSES
 from wordle_env import wordle_feedback, filter_candidates, word_features
 
@@ -8,8 +9,8 @@ from wordle_env import wordle_feedback, filter_candidates, word_features
 # Fitness evaluation
 # =========================
 
-MAX_GUESSES = 6
-FAIL_PENALTY = 10.0  # pseudo number of guesses if fail
+MAX_GUESSES = CONFIG["max_guesses"]
+FAIL_PENALTY = CONFIG["fail_penalty"]
 
 
 def play_game_with_individual(individual, secret, verbose=False):
@@ -43,7 +44,7 @@ def play_game_with_individual(individual, secret, verbose=False):
         if not candidates:
             # no options left, fail hard
             return FAIL_PENALTY
-    # failed in 6 guesses
+    # failed in MAX_GUESSES
     return FAIL_PENALTY
 
 

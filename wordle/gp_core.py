@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import random
+from config import CONFIG
 
 # =========================
 # GP tree representation
@@ -106,9 +107,9 @@ FEATURES = [
     "remaining_candidates",
 ]
 
-CONST_RANGE = (-2.0, 2.0)
+CONST_RANGE = CONFIG["const_range"]
 
-RNG = random.Random(42)
+RNG = random.Random(CONFIG["random_seed"])
 
 
 def random_terminal():

@@ -1,35 +1,35 @@
 #!/usr/bin/env python3
 import requests
+from config import CONFIG
 
 # =========================
 # Online Wordle vocabulary
 # =========================
 
-# GitHub repo: ed-fish/wordle-vocab, vocab.json
-# Contains a "vocab" object (~2k answer words) and an "other" object (~10k allowed guesses).
-WORD_VOCAB_URL = "https://raw.githubusercontent.com/ed-fish/wordle-vocab/main/vocab.json"
+# stuartpb/wordles:
+WORD_ANSWERS_URL = "https://raw.githubusercontent.com/stuartpb/wordles/master/wordles.json"
+WORD_GUESSES_URL = "https://raw.githubusercontent.com/stuartpb/wordles/master/nonwordles.json"
 
 
 def load_word_lists():
     """
-    Download Wordle vocabulary from the online JSON.
+    Download Wordle vocabulary from online JSON.
     Returns (secret_words, allowed_guesses).
-    If download fails, falls back to a tiny local list (so the script still runs).
+    If download fails, falls back to a tiny local list.
     """
     try:
-        print(f"Downloading Wordle vocab from {WORD_VOCAB_URL} ...")
-        resp = requests.get(WORD_VOCAB_URL, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        print("Downloading Wordle vocab from stuartpb/wordles ...")
+        ans_resp = requests.get(WORD_ANSWERS_URL, timeout=10)
+        ans_resp.raise_for_status()
+        guess_resp = requests.get(WORD_GUESSES_URL, timeout=10)
+        guess_resp.raise_for_status()
 
-        vocab = data["vocab"]          # main answer list
-        other = data.get("other", [])  # extra acceptable guesses
+        # These are just lists of strings
+        answers = ans_resp.json()
+        other = guess_resp.json()
 
-        # Secrets = vocab (like real Wordle)
-        secret_words = list(vocab)
-
-        # Allowed guesses = vocab + other (dedup, keep order)
-        all_words = list(dict.fromkeys(list(vocab) + list(other)))
+        secret_words = list(answers)
+        all_words = list(dict.fromkeys(list(answers) + list(other)))
 
         print(f"Loaded {len(secret_words)} secret words and {len(all_words)} allowed guesses from online source.")
         return secret_words, all_words
@@ -44,5 +44,4 @@ def load_word_lists():
 
 SECRET_WORDS, ALLOWED_GUESSES = load_word_lists()
 
-# To keep fitness evaluation fast, we train on a random subset of secrets:
-TRAIN_SAMPLE_SIZE = min(200, len(SECRET_WORDS))
+TRAIN_SAMPLE_SIZE = min(CONFIG["train_sample_size"], len(SECRET_WORDS))
