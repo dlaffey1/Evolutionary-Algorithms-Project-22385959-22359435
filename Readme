@@ -1,0 +1,5 @@
+# 1) Install dependency
+pip install requests
+
+# 2) Run GP + demo
+python gp_wordle_online.py
