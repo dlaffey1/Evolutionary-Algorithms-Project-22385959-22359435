@@ -3,7 +3,13 @@ import math
 
 from config import CONFIG
 from online_vocab import ALLOWED_GUESSES
-from wordle_env import wordle_feedback, filter_candidates, word_features
+from wordle_env import (
+    wordle_feedback,
+    filter_candidates,
+    compute_letter_frequencies,
+    compute_positional_frequencies,
+    word_features_precomputed,
+)
 
 # =========================
 # Fitness evaluation
@@ -20,11 +26,15 @@ def play_game_with_individual(individual, secret, verbose=False):
     """
     candidates = ALLOWED_GUESSES[:]
     for guess_num in range(1, MAX_GUESSES + 1):
-        # score each candidate using GP tree
+        # precompute frequencies ONCE for this guess
+        letter_freqs = compute_letter_frequencies(candidates)
+        pos_freqs = compute_positional_frequencies(candidates)
+        remaining = len(candidates)
+
         best_word = None
         best_score = -math.inf
         for w in candidates:
-            feats = word_features(w, candidates)
+            feats = word_features_precomputed(w, letter_freqs, pos_freqs, remaining)
             ctx = {"features": feats}
             score = individual.tree.eval(ctx)
             if score > best_score:
@@ -44,6 +54,7 @@ def play_game_with_individual(individual, secret, verbose=False):
         if not candidates:
             # no options left, fail hard
             return FAIL_PENALTY
+
     # failed in MAX_GUESSES
     return FAIL_PENALTY
 

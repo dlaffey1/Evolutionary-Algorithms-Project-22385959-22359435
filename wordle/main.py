@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from config import CONFIG
 import random
+
+from config import CONFIG
 from gp_core import (
     RNG,
     Individual,
@@ -75,7 +76,8 @@ def evolve(
 
 def demo_game(best_individual):
     """Play one demo game against a random secret from the ONLINE list."""
-    secret = random.choice(SECRET_WORDS)  # uses system-random seed
+    # use global random for a genuinely random secret each run
+    secret = random.choice(SECRET_WORDS)
     print("\n=== Demo game with evolved solver ===")
     print("(Secret word is hidden until the end)")
 

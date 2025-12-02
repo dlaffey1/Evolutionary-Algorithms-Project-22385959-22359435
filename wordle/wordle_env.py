@@ -62,7 +62,8 @@ def compute_positional_frequencies(candidates):
 
 def word_features(word, candidates):
     """
-    Compute the feature vector used by the GP tree for a candidate word.
+    Original (slower) feature computation: recomputes frequencies each call.
+    Kept for reference; fitness uses the precomputed version below.
     """
     letter_freqs = compute_letter_frequencies(candidates)
     pos_freqs = compute_positional_frequencies(candidates)
@@ -74,6 +75,27 @@ def word_features(word, candidates):
         psum += pos_freqs[i].get(ch, 0.0)
     unique_letters = len(set(word))
     remaining = len(candidates)
+    return {
+        "letter_freq_sum": lsum,
+        "positional_freq_sum": psum,
+        "unique_letters": float(unique_letters),
+        "remaining_candidates": float(remaining),
+    }
+
+
+def word_features_precomputed(word, letter_freqs, pos_freqs, remaining):
+    """
+    Faster feature computation using precomputed letter/positional frequencies.
+    Called from the fitness code once per candidate word, but frequencies are
+    computed only once per guess.
+    """
+    # letter frequency sum
+    lsum = sum(letter_freqs.get(ch, 0.0) for ch in word)
+    # positional frequency sum
+    psum = 0.0
+    for i, ch in enumerate(word):
+        psum += pos_freqs[i].get(ch, 0.0)
+    unique_letters = len(set(word))
     return {
         "letter_freq_sum": lsum,
         "positional_freq_sum": psum,
