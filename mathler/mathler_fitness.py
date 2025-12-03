@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import math
 from multiprocessing import Pool, cpu_count
-
 from config import CONFIG
 from mathler_env import (
     EXPR_LEN,
@@ -116,21 +115,24 @@ def _individual_fitness_value(individual, secrets):
     return total_guesses / len(secrets)
 
 
+
+
 def evaluate_population_mathler(pop, secrets):
     """
-    Evaluate the given population on the given list of (secret_expr, target_value)
-    USING MULTIPLE CORES via multiprocessing.Pool.
+    Evaluate the given population on the given list of (secret_expr, target_value).
 
-    This keeps the algorithm the same (same fitness definition),
-    but runs individuals in parallel.
+    If CONFIG['parallel_eval'] is True, use multiprocessing.Pool.
+    Otherwise, run sequentially (often faster for tiny populations).
     """
-    # Prepare arguments: same secrets for each individual
-    args = [(ind, secrets) for ind in pop]
+    if not CONFIG.get("parallel_eval", False):
+        # Sequential evaluation
+        for ind in pop:
+            ind.fitness = _individual_fitness_value(ind, secrets)
+        return
 
-    # Use all available CPU cores
+    # Parallel evaluation
+    args = [(ind, secrets) for ind in pop]
     with Pool(cpu_count()) as pool:
         fitnesses = pool.starmap(_individual_fitness_value, args)
-
-    # Assign fitness back to individuals
     for ind, fit in zip(pop, fitnesses):
         ind.fitness = fit

@@ -189,58 +189,139 @@ def compute_positional_symbol_frequencies(candidates):
 
 
 def expression_features_precomputed(expr, sym_freqs, pos_freqs, remaining):
-    """
-    Map Mathler expression features into the same feature names used by gp_core
-    so we can reuse the GP engine:
-    - letter_freq_sum      -> sum of symbol frequencies
-    - positional_freq_sum  -> sum of positional symbol frequencies
-    - unique_letters       -> number of unique symbols (digits+ops)
-    - remaining_candidates -> size of candidate set
-    """
     sym_sum = sum(sym_freqs.get(ch, 0.0) for ch in expr)
+
     pos_sum = 0.0
     for i, ch in enumerate(expr):
         pos_sum += pos_freqs[i].get(ch, 0.0)
+
     unique_symbols = len(set(expr))
+    op_count = sum(1 for ch in expr if ch in OPS)
+    digit_count = len(expr) - op_count
+
     return {
         "letter_freq_sum": sym_sum,
         "positional_freq_sum": pos_sum,
         "unique_letters": float(unique_symbols),
         "remaining_candidates": float(remaining),
+        "operator_count": float(op_count),
+        "digit_count": float(digit_count),
     }
 
 
 
 def generate_initial_candidates(target_value: int):
     """
-    Generate up to CONFIG['max_candidates'] expressions that:
-    - are syntactically valid Mathler expressions, and
-    - evaluate to target_value.
+    Generate an initial set of candidates for a given target value.
+
+    If CONFIG['use_constraint_search'] is True, use DFS constraint search.
+    Otherwise, use random sampling with bounds on the number of attempts.
     """
     max_candidates = CONFIG["max_candidates"]
-    search = ConstraintSearch(target_value, history=[])
-    return search.generate_n(max_candidates)
+
+    if CONFIG.get("use_constraint_search", False):
+        # DFS version
+        search = ConstraintSearch(target_value, history=[])
+        candidates = search.generate_n(max_candidates)
+        if CONFIG.get("debug"):
+            print(
+                f"[DEBUG] DFS initial candidates: target={target_value}, "
+                f"generated={len(candidates)}, nodes_expanded={search.nodes_expanded}"
+            )
+        return candidates
+
+    # Random version (fast)
+    max_attempts = CONFIG.get("max_init_attempts", 3000)
+
+    candidates = set()
+    attempts = 0
+
+    while len(candidates) < max_candidates and attempts < max_attempts:
+        attempts += 1
+        expr = generate_random_expression_string()
+        if not is_valid_expression(expr):
+            continue
+        try:
+            val = safe_eval(expr)
+        except ValueError:
+            continue
+        if val != target_value:
+            continue
+        candidates.add(expr)
+
+    if CONFIG.get("debug"):
+        print(
+            f"[DEBUG] random initial candidates: target={target_value}, "
+            f"generated={len(candidates)}, attempts={attempts}"
+        )
+
+    return list(candidates)
 
 
 
-def top_up_candidates(
-    candidates,
-    target_value: int,
-    history,
-):
+def top_up_candidates(candidates, target_value: int, history):
+    """
+    Top up the current candidate set.
+
+    If CONFIG['use_constraint_search'] is True, use DFS constraint search.
+    Otherwise, use random sampling with bounds on the number of attempts.
+    """
     max_candidates = CONFIG["max_candidates"]
+    min_candidates = CONFIG["min_candidates"]
+
+    # If we already have enough, do nothing
     if len(candidates) >= max_candidates:
         return candidates
-
-    # Only top up if we dropped below a minimum threshold
-    if len(candidates) >= CONFIG["min_candidates"]:
+    if len(candidates) >= min_candidates:
         return candidates
 
+    if CONFIG.get("use_constraint_search", False):
+        # DFS version
+        existing = set(candidates)
+        search = ConstraintSearch(target_value, history)
+        need = max_candidates - len(existing)
+        new_exprs = search.generate_n(need, existing=existing)
+        if CONFIG.get("debug"):
+            print(
+                f"[DEBUG] DFS top-up: target={target_value}, "
+                f"start={len(candidates)}, end={len(existing) + len(new_exprs)}, "
+                f"generated={len(new_exprs)}, nodes_expanded={search.nodes_expanded}, "
+                f"history_len={len(history)}"
+            )
+        return candidates + new_exprs
+
+    # Random version (fast)
     existing = set(candidates)
-    search = ConstraintSearch(target_value, history)
-    need = max_candidates - len(candidates)
-    new_exprs = search.generate_n(need, existing=existing)
-    return candidates + new_exprs
+    max_attempts = CONFIG.get("max_topup_attempts", 2000)
+    attempts = 0
+    added = 0
+
+    while len(existing) < max_candidates and attempts < max_attempts:
+        attempts += 1
+        expr = generate_random_expression_string()
+        if expr in existing:
+            continue
+        if not is_valid_expression(expr):
+            continue
+        try:
+            val = safe_eval(expr)
+        except ValueError:
+            continue
+        if val != target_value:
+            continue
+        if not _consistent_with_history(expr, history):
+            continue
+        existing.add(expr)
+        added += 1
+
+    if CONFIG.get("debug"):
+        print(
+            f"[DEBUG] random top-up: target={target_value}, "
+            f"start={len(candidates)}, end={len(existing)}, "
+            f"added={added}, attempts={attempts}, history_len={len(history)}"
+        )
+
+    return list(existing)
 
 
 class ConstraintSearch:
@@ -272,15 +353,6 @@ class ConstraintSearch:
         for d in DIGITS[1:]:
             self.stack.append((d, 1))
 
-    def _consistent_with_history(self, expr: str) -> bool:
-        """
-        Check if a completed expression would yield the recorded feedback
-        for every past guess.
-        """
-        for guess, fb in self.history:
-            if mathler_feedback(guess, expr) != fb:
-                return False
-        return True
 
     def _extend_prefix(self, prefix: str, pos: int) -> None:
         """
@@ -381,3 +453,12 @@ class ConstraintSearch:
             # `next_expression` already added to seen, but we keep this
             # here for clarity that existing and seen are the same object.
         return out
+def _consistent_with_history(expr: str, history) -> bool:
+    """
+    Check if expr is consistent with all recorded (guess, feedback) pairs.
+    Uses the same mathler_feedback function as the game.
+    """
+    for guess, fb in history:
+        if mathler_feedback(guess, expr) != fb:
+            return False
+    return True

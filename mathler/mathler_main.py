@@ -18,11 +18,17 @@ from mathler_fitness import (
 )
 
 
+
 def generate_training_secrets(num_secrets: int):
     """
     Generate a list of (secret_expr, target_value) pairs for training.
-    Each secret is a random valid expression; its target_value is its evaluated result.
+    Each secret is a random valid expression whose evaluated value falls
+    within the configured [min_target_value, max_target_value] range
+    (if those bounds are set).
     """
+    min_v = CONFIG.get("min_target_value", None)
+    max_v = CONFIG.get("max_target_value", None)
+
     secrets = []
     seen = set()
     while len(secrets) < num_secrets:
@@ -31,12 +37,20 @@ def generate_training_secrets(num_secrets: int):
             val = safe_eval(expr)
         except Exception:
             continue
+
+        # Apply value range filter if configured
+        if (min_v is not None and val < min_v) or \
+           (max_v is not None and val > max_v):
+            continue
+
         key = (expr, val)
         if key in seen:
             continue
         seen.add(key)
         secrets.append(key)
+
     return secrets
+
 
 
 def evolve_mathler(
@@ -94,14 +108,35 @@ def evolve_mathler(
     print(f"Best individual: {best}")
     return best
 
+def _random_secret_in_value_range():
+    """
+    Generate a random valid expression whose value lies within
+    [min_target_value, max_target_value] as specified in CONFIG.
+    If bounds are None, they are ignored.
+    """
+    min_v = CONFIG.get("min_target_value", None)
+    max_v = CONFIG.get("max_target_value", None)
 
+    while True:
+        expr = generate_random_valid_expression()
+        try:
+            val = safe_eval(expr)
+        except Exception:
+            continue
+
+        if (min_v is not None and val < min_v) or \
+           (max_v is not None and val > max_v):
+            continue
+
+        return expr, val
+    
 def demo_mathler_game(best_individual):
     """
-    Play one demo Mathler game against a random secret.
+    Play one demo Mathler game against a random secret whose target
+    value is constrained by CONFIG[min_target_value, max_target_value].
     """
     # Generate a random secret expression and its target value
-    secret_expr = generate_random_valid_expression()
-    target_value = safe_eval(secret_expr)
+    secret_expr, target_value = _random_secret_in_value_range()
 
     print("\n=== Demo Mathler game with evolved solver ===")
     print(f"Target value is: {target_value}")
