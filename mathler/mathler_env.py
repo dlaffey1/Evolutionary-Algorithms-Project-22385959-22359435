@@ -188,24 +188,66 @@ def compute_positional_symbol_frequencies(candidates):
     return pos_freqs
 
 
+import math
+from collections import Counter
+
 def expression_features_precomputed(expr, sym_freqs, pos_freqs, remaining):
+    """
+    Map a Mathler expression into GP features.
+
+    - letter_freq_sum      : sum of symbol frequencies in candidate set
+    - positional_freq_sum  : sum of positional symbol frequencies
+    - unique_letters       : number of distinct symbols (digits+ops)
+    - remaining_candidates : size of candidate set
+    - operator_count       : total operators in expr
+    - digit_count          : total digits in expr
+    - distinct_digits      : number of distinct digits used
+    - plus_count/minus_count/mul_count/div_count : operator mix
+    - symbol_entropy       : entropy of symbol distribution in this expr
+    """
+    # Global frequency-based features
     sym_sum = sum(sym_freqs.get(ch, 0.0) for ch in expr)
 
     pos_sum = 0.0
     for i, ch in enumerate(expr):
         pos_sum += pos_freqs[i].get(ch, 0.0)
 
-    unique_symbols = len(set(expr))
-    op_count = sum(1 for ch in expr if ch in OPS)
-    digit_count = len(expr) - op_count
+    # Structural features
+    symbols = list(expr)
+    unique_symbols = len(set(symbols))
+
+    op_count = sum(1 for ch in symbols if ch in OPS)
+    digit_count = len(symbols) - op_count
+
+    digits_only = [ch for ch in symbols if ch.isdigit()]
+    distinct_digits = len(set(digits_only))
+
+    plus_count = expr.count("+")
+    minus_count = expr.count("-")
+    mul_count = expr.count("*")
+    div_count = expr.count("/")
+
+    # Entropy of symbol distribution in this guess
+    counts = Counter(symbols)
+    total = float(len(symbols)) if symbols else 1.0
+    symbol_entropy = 0.0
+    for c in counts.values():
+        p = c / total
+        symbol_entropy -= p * math.log(p + 1e-12)  # natural log
 
     return {
-        "letter_freq_sum": sym_sum,
-        "positional_freq_sum": pos_sum,
+        "letter_freq_sum": float(sym_sum),
+        "positional_freq_sum": float(pos_sum),
         "unique_letters": float(unique_symbols),
         "remaining_candidates": float(remaining),
         "operator_count": float(op_count),
         "digit_count": float(digit_count),
+        "distinct_digits": float(distinct_digits),
+        "plus_count": float(plus_count),
+        "minus_count": float(minus_count),
+        "mul_count": float(mul_count),
+        "div_count": float(div_count),
+        "symbol_entropy": float(symbol_entropy),
     }
 
 
@@ -427,8 +469,9 @@ class ConstraintSearch:
                 continue
 
             # Check feedback consistency
-            if not self._consistent_with_history(expr):
+            if self.history and not _consistent_with_history(expr, self.history):
                 continue
+
 
             seen.add(expr)
             return expr
