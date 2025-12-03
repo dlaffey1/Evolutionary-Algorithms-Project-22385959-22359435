@@ -210,7 +210,7 @@ def expression_features_precomputed(expr, sym_freqs, pos_freqs, remaining):
     }
 
 
-def generate_initial_candidates(target_value: int, max_candidates: int = 500, max_attempts: int = 20000):
+def generate_initial_candidates(target_value: int, max_candidates: int = 20, max_attempts: int = 100):
     """
     Generate up to max_candidates random expressions that evaluate to target_value.
     Does NOT precompute the entire space; instead samples on the fly.
@@ -232,7 +232,7 @@ def generate_initial_candidates(target_value: int, max_candidates: int = 500, ma
     return list(candidates)
 
 
-def top_up_candidates(candidates, target_value: int, history, max_candidates: int = 500, max_attempts: int = 5000):
+def top_up_candidates(candidates, target_value: int, history, max_candidates: int = 20, max_attempts: int = 100):
     """
     Top up the candidate list by sampling additional expressions that:
     - evaluate to target_value
