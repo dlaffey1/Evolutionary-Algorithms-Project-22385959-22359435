@@ -6,6 +6,7 @@ from config import CONFIG
 from mathler_env import (
     EXPR_LEN,
     safe_eval,
+    is_valid_expression,
     mathler_feedback,
     compute_symbol_frequencies,
     compute_positional_symbol_frequencies,
@@ -23,14 +24,33 @@ def play_game_with_individual(individual, secret_expr: str, target_value: int, v
     Play a single Mathler game with a given GP individual as the strategy.
     Returns the number of guesses used, or FAIL_PENALTY if it fails.
     """
+    # Verify the secret is part of the legal search space before starting
+    try:
+        secret_val = safe_eval(secret_expr)
+    except ValueError:
+        if verbose:
+            print(f"Secret '{secret_expr}' is invalid; cannot be found.")
+        return FAIL_PENALTY
+    if not is_valid_expression(secret_expr) or secret_val != target_value:
+        if verbose:
+            print(f"Secret '{secret_expr}' not in search space for target {target_value}; cannot be found.")
+        return FAIL_PENALTY
+
     # Initial candidate sample for this target (on the fly)
     candidates = generate_initial_candidates(target_value)
-    # Ensure the true secret is in the candidate set if it matches the target
-    try:
-        if safe_eval(secret_expr) == target_value and secret_expr not in candidates:
-            candidates.append(secret_expr)
-    except Exception:
-        pass
+    if secret_expr not in candidates and verbose:
+        print(
+            f"Warning: secret '{secret_expr}' not in initial {len(candidates)} "
+            f"candidates for target {target_value}. "
+            "Solver may or may not find it with limited search."
+        )
+
+    if CONFIG.get("debug") and verbose:
+        print(
+            f"[DEBUG] Initial candidates for target {target_value}: "
+            f"{len(candidates)} expressions"
+        )
+
 
     history = []  # list of (guess, feedback)
 

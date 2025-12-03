@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 from collections import Counter, defaultdict
-
+from config import CONFIG
 # Mathler environment and feature computation
 
 DIGITS = "0123456789"
@@ -210,56 +210,174 @@ def expression_features_precomputed(expr, sym_freqs, pos_freqs, remaining):
     }
 
 
-def generate_initial_candidates(target_value: int, max_candidates: int = 500, max_attempts: int = 20000):
+
+def generate_initial_candidates(target_value: int):
     """
-    Generate up to max_candidates random expressions that evaluate to target_value.
-    Does NOT precompute the entire space; instead samples on the fly.
+    Generate up to CONFIG['max_candidates'] expressions that:
+    - are syntactically valid Mathler expressions, and
+    - evaluate to target_value.
     """
-    candidates = set()
-    attempts = 0
-    while len(candidates) < max_candidates and attempts < max_attempts:
-        attempts += 1
-        expr = generate_random_expression_string()
-        if not is_valid_expression(expr):
-            continue
-        try:
-            val = safe_eval(expr)
-        except ValueError:
-            continue
-        if val != target_value:
-            continue
-        candidates.add(expr)
-    return list(candidates)
+    max_candidates = CONFIG["max_candidates"]
+    search = ConstraintSearch(target_value, history=[])
+    return search.generate_n(max_candidates)
 
 
-def top_up_candidates(candidates, target_value: int, history, max_candidates: int = 500, max_attempts: int = 5000):
+
+def top_up_candidates(
+    candidates,
+    target_value: int,
+    history,
+):
+    max_candidates = CONFIG["max_candidates"]
+    if len(candidates) >= max_candidates:
+        return candidates
+
+    # Only top up if we dropped below a minimum threshold
+    if len(candidates) >= CONFIG["min_candidates"]:
+        return candidates
+
+    existing = set(candidates)
+    search = ConstraintSearch(target_value, history)
+    need = max_candidates - len(candidates)
+    new_exprs = search.generate_n(need, existing=existing)
+    return candidates + new_exprs
+
+
+class ConstraintSearch:
     """
-    Top up the candidate list by sampling additional expressions that:
-    - evaluate to target_value
-    - are consistent with all (guess, feedback) pairs in history
+    Grammar-guided, constraint-based generator for Mathler expressions.
+
+    It generates only 6-character expressions that:
+    - Respect the syntax rules:
+        * first char 1-9
+        * last char digit
+        * no two operators in a row
+        * no '0' immediately after an operator
+        * at least 2 operators total
+    - Evaluate to the given target_value
+    - Are consistent with all (guess, feedback) pairs in history
     """
-    candidate_set = set(candidates)
-    attempts = 0
-    while len(candidate_set) < max_candidates and attempts < max_attempts:
-        attempts += 1
-        expr = generate_random_expression_string()
-        if expr in candidate_set:
-            continue
-        if not is_valid_expression(expr):
-            continue
-        try:
-            val = safe_eval(expr)
-        except ValueError:
-            continue
-        if val != target_value:
-            continue
-        # Check consistency with history
-        consistent = True
-        for guess, fb in history:
+
+    def __init__(self, target_value: int, history):
+        """
+        history: list of (guess, feedback) pairs, where feedback is the
+                 [1, -1, 0] list from mathler_feedback.
+        """
+        self.target_value = target_value
+        self.history = history
+        # DFS stack holds tuples: (prefix_string, next_position_index)
+        # position index is the length of prefix (0..EXPR_LEN)
+        self.stack = []
+        # Initialise with all possible first characters (1-9)
+        for d in DIGITS[1:]:
+            self.stack.append((d, 1))
+
+    def _consistent_with_history(self, expr: str) -> bool:
+        """
+        Check if a completed expression would yield the recorded feedback
+        for every past guess.
+        """
+        for guess, fb in self.history:
             if mathler_feedback(guess, expr) != fb:
-                consistent = False
+                return False
+        return True
+
+    def _extend_prefix(self, prefix: str, pos: int) -> None:
+        """
+        Given a partial prefix and its current length pos, push all valid
+        one-character extensions onto the DFS stack.
+
+        We enforce:
+        - Last position must be a digit.
+        - No two operators in a row.
+        - No '0' immediately after an operator.
+        """
+        prev = prefix[-1]
+        is_last = (pos == EXPR_LEN - 1)
+
+        if is_last:
+            # At the last position we MUST choose a digit.
+            if prev in OPS:
+                digits = DIGITS[1:]  # 1..9 (no leading 0 after operator)
+            else:
+                digits = DIGITS      # 0..9
+            for d in digits:
+                self.stack.append((prefix + d, pos + 1))
+        else:
+            if prev in OPS:
+                # Immediately after an operator: must be digit 1..9
+                for d in DIGITS[1:]:
+                    self.stack.append((prefix + d, pos + 1))
+            else:
+                # prev is a digit: we can choose digit or operator
+                # digits 0..9
+                for d in DIGITS:
+                    self.stack.append((prefix + d, pos + 1))
+                # operators
+                for op in OPS:
+                    self.stack.append((prefix + op, pos + 1))
+
+    def next_expression(self, seen=None):
+        """
+        Return the next new expression satisfying all constraints,
+        or None if the search space is exhausted.
+
+        `seen` is a set of expressions to avoid (already used).
+        """
+        if seen is None:
+            seen = set()
+
+        while self.stack:
+            prefix, pos = self.stack.pop()
+
+            if pos < EXPR_LEN:
+                # Not full length yet – extend this prefix and continue.
+                self._extend_prefix(prefix, pos)
+                continue
+
+            # pos == EXPR_LEN: full-length candidate
+            expr = prefix
+
+            # Skip duplicates
+            if expr in seen:
+                continue
+
+            # Must have at least 2 operators
+            if sum(1 for ch in expr if ch in OPS) < 2:
+                continue
+
+            # Semantic checks: evaluate and check target
+            try:
+                val = safe_eval(expr)
+            except ValueError:
+                continue
+            if val != self.target_value:
+                continue
+
+            # Check feedback consistency
+            if not self._consistent_with_history(expr):
+                continue
+
+            seen.add(expr)
+            return expr
+
+        # Exhausted search space
+        return None
+
+    def generate_n(self, n: int, existing=None):
+        """
+        Generate up to n NEW expressions, skipping those in `existing`.
+        Returns a list of expressions.
+        """
+        if existing is None:
+            existing = set()
+
+        out = []
+        while len(out) < n:
+            expr = self.next_expression(seen=existing)
+            if expr is None:
                 break
-        if not consistent:
-            continue
-        candidate_set.add(expr)
-    return list(candidate_set)
+            out.append(expr)
+            # `next_expression` already added to seen, but we keep this
+            # here for clarity that existing and seen are the same object.
+        return out
