@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import random
 from collections import Counter, defaultdict
-
+from config import CONFIG
 # Mathler environment and feature computation
 
 DIGITS = "0123456789"
@@ -188,35 +188,96 @@ def compute_positional_symbol_frequencies(candidates):
     return pos_freqs
 
 
+import math
+from collections import Counter
+
 def expression_features_precomputed(expr, sym_freqs, pos_freqs, remaining):
     """
-    Map Mathler expression features into the same feature names used by gp_core
-    so we can reuse the GP engine:
-    - letter_freq_sum      -> sum of symbol frequencies
-    - positional_freq_sum  -> sum of positional symbol frequencies
-    - unique_letters       -> number of unique symbols (digits+ops)
-    - remaining_candidates -> size of candidate set
+    Map a Mathler expression into GP features.
+
+    - letter_freq_sum      : sum of symbol frequencies in candidate set
+    - positional_freq_sum  : sum of positional symbol frequencies
+    - unique_letters       : number of distinct symbols (digits+ops)
+    - remaining_candidates : size of candidate set
+    - operator_count       : total operators in expr
+    - digit_count          : total digits in expr
+    - distinct_digits      : number of distinct digits used
+    - plus_count/minus_count/mul_count/div_count : operator mix
+    - symbol_entropy       : entropy of symbol distribution in this expr
     """
+    # Global frequency-based features
     sym_sum = sum(sym_freqs.get(ch, 0.0) for ch in expr)
+
     pos_sum = 0.0
     for i, ch in enumerate(expr):
         pos_sum += pos_freqs[i].get(ch, 0.0)
-    unique_symbols = len(set(expr))
+
+    # Structural features
+    symbols = list(expr)
+    unique_symbols = len(set(symbols))
+
+    op_count = sum(1 for ch in symbols if ch in OPS)
+    digit_count = len(symbols) - op_count
+
+    digits_only = [ch for ch in symbols if ch.isdigit()]
+    distinct_digits = len(set(digits_only))
+
+    plus_count = expr.count("+")
+    minus_count = expr.count("-")
+    mul_count = expr.count("*")
+    div_count = expr.count("/")
+
+    # Entropy of symbol distribution in this guess
+    counts = Counter(symbols)
+    total = float(len(symbols)) if symbols else 1.0
+    symbol_entropy = 0.0
+    for c in counts.values():
+        p = c / total
+        symbol_entropy -= p * math.log(p + 1e-12)  # natural log
+
     return {
-        "letter_freq_sum": sym_sum,
-        "positional_freq_sum": pos_sum,
+        "letter_freq_sum": float(sym_sum),
+        "positional_freq_sum": float(pos_sum),
         "unique_letters": float(unique_symbols),
         "remaining_candidates": float(remaining),
+        "operator_count": float(op_count),
+        "digit_count": float(digit_count),
+        "distinct_digits": float(distinct_digits),
+        "plus_count": float(plus_count),
+        "minus_count": float(minus_count),
+        "mul_count": float(mul_count),
+        "div_count": float(div_count),
+        "symbol_entropy": float(symbol_entropy),
     }
 
 
-def generate_initial_candidates(target_value: int, max_candidates: int = 20, max_attempts: int = 100):
+
+def generate_initial_candidates(target_value: int):
     """
-    Generate up to max_candidates random expressions that evaluate to target_value.
-    Does NOT precompute the entire space; instead samples on the fly.
+    Generate an initial set of candidates for a given target value.
+
+    If CONFIG['use_constraint_search'] is True, use DFS constraint search.
+    Otherwise, use random sampling with bounds on the number of attempts.
     """
+    max_candidates = CONFIG["max_candidates"]
+
+    if CONFIG.get("use_constraint_search", False):
+        # DFS version
+        search = ConstraintSearch(target_value, history=[])
+        candidates = search.generate_n(max_candidates)
+        if CONFIG.get("debug"):
+            print(
+                f"[DEBUG] DFS initial candidates: target={target_value}, "
+                f"generated={len(candidates)}, nodes_expanded={search.nodes_expanded}"
+            )
+        return candidates
+
+    # Random version (fast)
+    max_attempts = CONFIG.get("max_init_attempts", 3000)
+
     candidates = set()
     attempts = 0
+
     while len(candidates) < max_candidates and attempts < max_attempts:
         attempts += 1
         expr = generate_random_expression_string()
@@ -229,21 +290,58 @@ def generate_initial_candidates(target_value: int, max_candidates: int = 20, max
         if val != target_value:
             continue
         candidates.add(expr)
+
+    if CONFIG.get("debug"):
+        print(
+            f"[DEBUG] random initial candidates: target={target_value}, "
+            f"generated={len(candidates)}, attempts={attempts}"
+        )
+
     return list(candidates)
 
 
-def top_up_candidates(candidates, target_value: int, history, max_candidates: int = 20, max_attempts: int = 100):
+
+def top_up_candidates(candidates, target_value: int, history):
     """
-    Top up the candidate list by sampling additional expressions that:
-    - evaluate to target_value
-    - are consistent with all (guess, feedback) pairs in history
+    Top up the current candidate set.
+
+    If CONFIG['use_constraint_search'] is True, use DFS constraint search.
+    Otherwise, use random sampling with bounds on the number of attempts.
     """
-    candidate_set = set(candidates)
+    max_candidates = CONFIG["max_candidates"]
+    min_candidates = CONFIG["min_candidates"]
+
+    # If we already have enough, do nothing
+    if len(candidates) >= max_candidates:
+        return candidates
+    if len(candidates) >= min_candidates:
+        return candidates
+
+    if CONFIG.get("use_constraint_search", False):
+        # DFS version
+        existing = set(candidates)
+        search = ConstraintSearch(target_value, history)
+        need = max_candidates - len(existing)
+        new_exprs = search.generate_n(need, existing=existing)
+        if CONFIG.get("debug"):
+            print(
+                f"[DEBUG] DFS top-up: target={target_value}, "
+                f"start={len(candidates)}, end={len(existing) + len(new_exprs)}, "
+                f"generated={len(new_exprs)}, nodes_expanded={search.nodes_expanded}, "
+                f"history_len={len(history)}"
+            )
+        return candidates + new_exprs
+
+    # Random version (fast)
+    existing = set(candidates)
+    max_attempts = CONFIG.get("max_topup_attempts", 2000)
     attempts = 0
-    while len(candidate_set) < max_candidates and attempts < max_attempts:
+    added = 0
+
+    while len(existing) < max_candidates and attempts < max_attempts:
         attempts += 1
         expr = generate_random_expression_string()
-        if expr in candidate_set:
+        if expr in existing:
             continue
         if not is_valid_expression(expr):
             continue
@@ -253,13 +351,157 @@ def top_up_candidates(candidates, target_value: int, history, max_candidates: in
             continue
         if val != target_value:
             continue
-        # Check consistency with history
-        consistent = True
-        for guess, fb in history:
-            if mathler_feedback(guess, expr) != fb:
-                consistent = False
-                break
-        if not consistent:
+        if not _consistent_with_history(expr, history):
             continue
-        candidate_set.add(expr)
-    return list(candidate_set)
+        existing.add(expr)
+        added += 1
+
+    if CONFIG.get("debug"):
+        print(
+            f"[DEBUG] random top-up: target={target_value}, "
+            f"start={len(candidates)}, end={len(existing)}, "
+            f"added={added}, attempts={attempts}, history_len={len(history)}"
+        )
+
+    return list(existing)
+
+
+class ConstraintSearch:
+    """
+    Grammar-guided, constraint-based generator for Mathler expressions.
+
+    It generates only 6-character expressions that:
+    - Respect the syntax rules:
+        * first char 1-9
+        * last char digit
+        * no two operators in a row
+        * no '0' immediately after an operator
+        * at least 2 operators total
+    - Evaluate to the given target_value
+    - Are consistent with all (guess, feedback) pairs in history
+    """
+
+    def __init__(self, target_value: int, history):
+        """
+        history: list of (guess, feedback) pairs, where feedback is the
+                 [1, -1, 0] list from mathler_feedback.
+        """
+        self.target_value = target_value
+        self.history = history
+        # DFS stack holds tuples: (prefix_string, next_position_index)
+        # position index is the length of prefix (0..EXPR_LEN)
+        self.stack = []
+        # Initialise with all possible first characters (1-9)
+        for d in DIGITS[1:]:
+            self.stack.append((d, 1))
+
+
+    def _extend_prefix(self, prefix: str, pos: int) -> None:
+        """
+        Given a partial prefix and its current length pos, push all valid
+        one-character extensions onto the DFS stack.
+
+        We enforce:
+        - Last position must be a digit.
+        - No two operators in a row.
+        - No '0' immediately after an operator.
+        """
+        prev = prefix[-1]
+        is_last = (pos == EXPR_LEN - 1)
+
+        if is_last:
+            # At the last position we MUST choose a digit.
+            if prev in OPS:
+                digits = DIGITS[1:]  # 1..9 (no leading 0 after operator)
+            else:
+                digits = DIGITS      # 0..9
+            for d in digits:
+                self.stack.append((prefix + d, pos + 1))
+        else:
+            if prev in OPS:
+                # Immediately after an operator: must be digit 1..9
+                for d in DIGITS[1:]:
+                    self.stack.append((prefix + d, pos + 1))
+            else:
+                # prev is a digit: we can choose digit or operator
+                # digits 0..9
+                for d in DIGITS:
+                    self.stack.append((prefix + d, pos + 1))
+                # operators
+                for op in OPS:
+                    self.stack.append((prefix + op, pos + 1))
+
+    def next_expression(self, seen=None):
+        """
+        Return the next new expression satisfying all constraints,
+        or None if the search space is exhausted.
+
+        `seen` is a set of expressions to avoid (already used).
+        """
+        if seen is None:
+            seen = set()
+
+        while self.stack:
+            prefix, pos = self.stack.pop()
+
+            if pos < EXPR_LEN:
+                # Not full length yet – extend this prefix and continue.
+                self._extend_prefix(prefix, pos)
+                continue
+
+            # pos == EXPR_LEN: full-length candidate
+            expr = prefix
+
+            # Skip duplicates
+            if expr in seen:
+                continue
+
+            # Must have at least 2 operators
+            if sum(1 for ch in expr if ch in OPS) < 2:
+                continue
+
+            # Semantic checks: evaluate and check target
+            try:
+                val = safe_eval(expr)
+            except ValueError:
+                continue
+            if val != self.target_value:
+                continue
+
+            # Check feedback consistency
+            if self.history and not _consistent_with_history(expr, self.history):
+                continue
+
+
+            seen.add(expr)
+            return expr
+
+        # Exhausted search space
+        return None
+
+    def generate_n(self, n: int, existing=None):
+        """
+        Generate up to n NEW expressions, skipping those in `existing`.
+        Returns a list of expressions.
+        """
+        if existing is None:
+            existing = set()
+
+        out = []
+        while len(out) < n:
+            expr = self.next_expression(seen=existing)
+            if expr is None:
+                break
+            out.append(expr)
+            # `next_expression` already added to seen, but we keep this
+            # here for clarity that existing and seen are the same object.
+        return out
+def _consistent_with_history(expr: str, history) -> bool:
+    """
+    Check if expr is consistent with all recorded (guess, feedback) pairs.
+    Uses the same mathler_feedback function as the game.
+    """
+    for guess, fb in history:
+        if mathler_feedback(guess, expr) != fb:
+            return False
+    return True

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import math
 from multiprocessing import Pool, cpu_count
-
 from config import CONFIG
 from mathler_env import (
     EXPR_LEN,
     safe_eval,
+    is_valid_expression,
     mathler_feedback,
     compute_symbol_frequencies,
     compute_positional_symbol_frequencies,
@@ -23,14 +23,26 @@ def play_game_with_individual(individual, secret_expr: str, target_value: int, v
     Play a single Mathler game with a given GP individual as the strategy.
     Returns the number of guesses used, or FAIL_PENALTY if it fails.
     """
+    # Verify the secret is part of the legal search space before starting
+    try:
+        secret_val = safe_eval(secret_expr)
+    except ValueError:
+        if verbose:
+            print(f"Secret '{secret_expr}' is invalid; cannot be found.")
+        return FAIL_PENALTY
+    if not is_valid_expression(secret_expr) or secret_val != target_value:
+        if verbose:
+            print(f"Secret '{secret_expr}' not in search space for target {target_value}; cannot be found.")
+        return FAIL_PENALTY
+
     # Initial candidate sample for this target (on the fly)
     candidates = generate_initial_candidates(target_value)
     # Ensure the true secret is in the candidate set if it matches the target
-    # try:
-    #     if safe_eval(secret_expr) == target_value and secret_expr not in candidates:
-    #         candidates.append(secret_expr)
-    # except Exception:
-    #     pass
+    try:
+        if safe_eval(secret_expr) == target_value and secret_expr not in candidates:
+            candidates.append(secret_expr)
+    except Exception:
+        pass
 
     history = []  # list of (guess, feedback)
 
@@ -96,21 +108,24 @@ def _individual_fitness_value(individual, secrets):
     return total_guesses / len(secrets)
 
 
+
+
 def evaluate_population_mathler(pop, secrets):
     """
-    Evaluate the given population on the given list of (secret_expr, target_value)
-    USING MULTIPLE CORES via multiprocessing.Pool.
+    Evaluate the given population on the given list of (secret_expr, target_value).
 
-    This keeps the algorithm the same (same fitness definition),
-    but runs individuals in parallel.
+    If CONFIG['parallel_eval'] is True, use multiprocessing.Pool.
+    Otherwise, run sequentially (often faster for tiny populations).
     """
-    # Prepare arguments: same secrets for each individual
-    args = [(ind, secrets) for ind in pop]
+    if not CONFIG.get("parallel_eval", False):
+        # Sequential evaluation
+        for ind in pop:
+            ind.fitness = _individual_fitness_value(ind, secrets)
+        return
 
-    # Use all available CPU cores
+    # Parallel evaluation
+    args = [(ind, secrets) for ind in pop]
     with Pool(cpu_count()) as pool:
         fitnesses = pool.starmap(_individual_fitness_value, args)
-
-    # Assign fitness back to individuals
     for ind, fit in zip(pop, fitnesses):
         ind.fitness = fit

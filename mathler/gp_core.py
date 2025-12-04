@@ -48,7 +48,17 @@ FEATURES = [
     "positional_freq_sum",
     "unique_letters",
     "remaining_candidates",
+    "operator_count",
+    "digit_count",
+    "distinct_digits",
+    "plus_count",
+    "minus_count",
+    "mul_count",
+    "div_count",
+    "symbol_entropy",
 ]
+
+
 
 CONST_RANGE = CONFIG["const_range"]
 
