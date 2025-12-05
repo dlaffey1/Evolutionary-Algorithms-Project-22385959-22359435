@@ -1,8 +1,8 @@
 #Light setup for using with DFS candidate generation and GP
 CONFIG = {
-    "random_seed": 42,
-    "generations": 3,          # was 1
-    "pop_size": 8,             # was 5
+    "random_seed": 123,
+    "generations": 3,
+    "pop_size": 20,
     "max_depth": 4,            # was 3
     "crossover_rate": 0.8,
     "mutation_rate": 0.2,
@@ -17,16 +17,16 @@ CONFIG = {
     "train_sample_size": 8,    # was 5, still small
 
     # DFS candidate generation limits
-    "max_candidates": 60,      # was 50; tiny bump
-    "min_candidates": 15,      # was 10
+    "max_candidates": 100,      # was 50; tiny bump
+    "min_candidates": 20,      # was 10
 
     # Logging
     "debug": False,            # set True if you want to see DFS stats
 
     # Restrict target values for secrets (both training + demo)
     # Set to None to disable the bound.
-    "min_target_value": 100,   # only allow targets >= 100
-    "max_target_value": 300,   # only allow targets <= 200
+    "min_target_value": 100,
+    "max_target_value": 300,
     "parallel_eval": True,      # Enable parallel fitness evaluation
     "use_constraint_search": True,
 

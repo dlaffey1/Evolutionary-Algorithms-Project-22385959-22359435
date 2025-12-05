@@ -37,12 +37,7 @@ def play_game_with_individual(individual, secret_expr: str, target_value: int, v
 
     # Initial candidate sample for this target (on the fly)
     candidates = generate_initial_candidates(target_value)
-    # Ensure the true secret is in the candidate set if it matches the target
-    try:
-        if safe_eval(secret_expr) == target_value and secret_expr not in candidates:
-            candidates.append(secret_expr)
-    except Exception:
-        pass
+
 
     history = []  # list of (guess, feedback)
 

@@ -1,0 +1,29 @@
+Generation 00 | Best fitness (avg guesses): 2.375 | Avg fitness: 2.569
+  Best individual: add(mul_count, mul(-1.03, -0.94))
+Generation 01 | Best fitness (avg guesses): 2.250 | Avg fitness: 2.456
+  Best individual: sub(-1.02, pdiv(div_count, add(remaining_candidates, 1.52)))
+Generation 02 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.400
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Generation 03 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.369
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Generation 04 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.325
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Generation 05 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.375
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Generation 06 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.325
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Generation 07 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.319
+  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+
+=== Finished GP training (Mathler) ===
+Best fitness (avg guesses): 2.125
+Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+
+=== Demo Mathler game with evolved solver ===
+Target value is: 104
+(Secret expression is hidden until the end)
+Guess 1: 9*8+32  Feedback: [1, 0, 0, -1, 0, 1]
+Guess 2: 97+5+2  Feedback: [1, 1, 1, 0, -1, 1]
+Guess 3: 97+9-2  Feedback: [1, 1, 1, 1, 1, 1]
+SOLVED in 3 guesses!
+Secret expression was: 97+9-2
