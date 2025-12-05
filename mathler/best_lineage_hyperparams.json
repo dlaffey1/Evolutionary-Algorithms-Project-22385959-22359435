@@ -1,0 +1,22 @@
+{
+  "best_avg_guesses": 2.2666666666666666,
+  "hyperparams": {
+    "lineage_pop_size": 70,
+    "lineage_gens_first": 8,
+    "lineage_gens_per_step": 10,
+    "lineage_crossover_rate": 0.4164031446449828,
+    "lineage_mutation_rate": 0.2877572136914232,
+    "lineage_elite_fraction": 0.13428203916266124,
+    "lineage_tournament_k": 3,
+    "lineage_mutation_attempts": 55,
+    "lineage_w_closeness": 1.3632820383597766,
+    "lineage_closeness_max_score": 10.487208984635947,
+    "lineage_closeness_diff_clip": 188.33810837155823,
+    "lineage_inconsistency_penalty": 21.54012620306195,
+    "lineage_w_feedback_match": 0.38429479897497115,
+    "lineage_w_positional_freq_sum": 0.616644567516661,
+    "lineage_w_unique_letters": 0.09093127777477376,
+    "lineage_w_distinct_digits": 0.08461222678064872,
+    "lineage_w_symbol_entropy": 0.4058441178368745
+  }
+}

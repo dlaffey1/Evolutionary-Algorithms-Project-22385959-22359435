@@ -44,7 +44,6 @@ def is_valid_expression(expr: str) -> bool:
     - last char is a digit
     - no digit chunk starting with 0 immediately after an operator
     - evaluates to an integer (no decimals), no division by zero, etc.
-    - must have at least 2 operators
     """
     if len(expr) != EXPR_LEN:
         return False
@@ -58,10 +57,8 @@ def is_valid_expression(expr: str) -> bool:
     # last char must be digit
     if expr[-1] not in DIGITS:
         return False
-
-    # at least 2 operators
-    if sum(1 for ch in expr if ch in OPS) < 2:
-        return False
+    
+    # no two operators in a row, no leading zeros after operator
     prev = expr[0]
     # first char is already a non-zero digit, so ok
     for i in range(1, EXPR_LEN):

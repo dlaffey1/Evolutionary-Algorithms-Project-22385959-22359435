@@ -29,6 +29,37 @@ CONFIG = {
     "max_target_value": 300,   # only allow targets <= 200
     "parallel_eval": True,      # Enable parallel fitness evaluation
     "use_constraint_search": True,
+
+
+    # Lineage Evolution Parameters
+    "lineage_pop_size": 70,
+    "lineage_gens_first": 8,
+    "lineage_gens_per_step": 10,
+    "lineage_crossover_rate": 0.4164031446449828,
+    "lineage_mutation_rate": 0.2877572136914232,
+    "lineage_elite_fraction": 0.13428203916266124,
+    "lineage_tournament_k": 3,
+    "lineage_mutation_attempts": 55,
+
+    "lineage_w_closeness": 1.3632820383597766,
+    "lineage_closeness_max_score": 10.487208984635947,
+    "lineage_closeness_diff_clip": 188.33810837155823,
+    "lineage_inconsistency_penalty": 21.54012620306195,
+    "lineage_w_feedback_match": 0.38429479897497115,
+
+    # feature weights
+    "lineage_w_letter_freq_sum": 0.0,
+    "lineage_w_positional_freq_sum": 0.616644567516661,
+    "lineage_w_unique_letters": 0.09093127777477376,
+    "lineage_w_remaining_candidates": 0.0,
+    "lineage_w_operator_count": 0.0,
+    "lineage_w_digit_count": 0.0,
+    "lineage_w_distinct_digits": 0.08461222678064872,
+    "lineage_w_plus_count": 0.0,
+    "lineage_w_minus_count": 0.0,
+    "lineage_w_mul_count": 0.0,
+    "lineage_w_div_count": 0.0,
+    "lineage_w_symbol_entropy": 0.4058441178368745,
 }
 
 # #Heavier non-DFS setup
