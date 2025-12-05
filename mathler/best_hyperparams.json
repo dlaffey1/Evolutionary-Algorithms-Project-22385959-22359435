@@ -1,0 +1,12 @@
+{
+  "w_closeness": 2.447557218803075,
+  "closeness_max_score": 8.827200041109258,
+  "closeness_diff_clip": 154.18748075799806,
+  "w_unsatisfied": 3.049178326221404,
+  "w_banned": -1.6295719853386856,
+  "w_diversity": 1.1383135773618673,
+  "w_feedback": 1.576210847078702,
+  "pop_size": 52,
+  "gens_per_guess": 23,
+  "avg_guesses": 4.65
+}

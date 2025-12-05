@@ -1,0 +1,29 @@
+{
+  "ga": {
+    "max_guesses": 6,
+    "pop_size": 43,
+    "gens_per_guess": 14
+  },
+  "fitness": {
+    "w_closeness": 0.15994802332846092,
+    "closeness_max_score": 9.84706859284752,
+    "closeness_diff_clip": 153.65217202541905,
+    "w_unsatisfied": 0.01522173582863163,
+    "w_banned": -1.5672221483303357,
+    "w_diversity": 0.0,
+    "w_feedback": 2.0704948200202202
+  },
+  "mutation": {
+    "prob_commutative_swap": 0.30,
+    "prob_digit_mutation": 0.65,
+    "fb_weight_green": 0.0,
+    "fb_weight_gray": 0.9,
+    "fb_weight_orange": 0.4,
+    "plusminus_close_diff": 50.0,
+    "plusminus_boost_factor": 2.0,
+    "mutate_max_attempts": 50
+  },
+  "repair": {
+    "repair_max_steps": 200
+  }
+}

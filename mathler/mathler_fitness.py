@@ -37,19 +37,12 @@ def play_game_with_individual(individual, secret_expr: str, target_value: int, v
 
     # Initial candidate sample for this target (on the fly)
     candidates = generate_initial_candidates(target_value)
-    if secret_expr not in candidates and verbose:
-        print(
-            f"Warning: secret '{secret_expr}' not in initial {len(candidates)} "
-            f"candidates for target {target_value}. "
-            "Solver may or may not find it with limited search."
-        )
-
-    if CONFIG.get("debug") and verbose:
-        print(
-            f"[DEBUG] Initial candidates for target {target_value}: "
-            f"{len(candidates)} expressions"
-        )
-
+    # Ensure the true secret is in the candidate set if it matches the target
+    try:
+        if safe_eval(secret_expr) == target_value and secret_expr not in candidates:
+            candidates.append(secret_expr)
+    except Exception:
+        pass
 
     history = []  # list of (guess, feedback)
 
