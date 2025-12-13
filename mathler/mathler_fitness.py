@@ -67,6 +67,8 @@ def play_game_with_individual(individual, secret_expr: str, target_value: int, v
         guess = best_expr
         fb = mathler_feedback(guess, secret_expr)
         history.append((guess, fb))
+        # Removes already guessed candidates to prevent predicting the same guess again
+        candidates = [expr for expr in candidates if expr != guess]
 
         if verbose:
             print(f"Guess {guess_num}: {guess}  Feedback: {fb}")

@@ -1,8 +1,8 @@
 #Light setup for using with DFS candidate generation and GP
 CONFIG = {
     "random_seed": 123,
-    "generations": 3,
-    "pop_size": 20,
+    "generations": 4,
+    "pop_size": 16,
     "max_depth": 4,            # was 3
     "crossover_rate": 0.8,
     "mutation_rate": 0.2,
@@ -14,11 +14,11 @@ CONFIG = {
     "fail_penalty": 10.0,
 
     # Training set size (how many secrets per fitness eval)
-    "train_sample_size": 8,    # was 5, still small
+    "train_sample_size": 6,
 
     # DFS candidate generation limits
-    "max_candidates": 100,      # was 50; tiny bump
-    "min_candidates": 20,      # was 10
+    "max_candidates": 80,
+    "min_candidates": 15,
 
     # Logging
     "debug": False,            # set True if you want to see DFS stats

@@ -1,29 +1,41 @@
-Generation 00 | Best fitness (avg guesses): 2.375 | Avg fitness: 2.569
-  Best individual: add(mul_count, mul(-1.03, -0.94))
-Generation 01 | Best fitness (avg guesses): 2.250 | Avg fitness: 2.456
-  Best individual: sub(-1.02, pdiv(div_count, add(remaining_candidates, 1.52)))
-Generation 02 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.400
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
-Generation 03 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.369
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
-Generation 04 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.325
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
-Generation 05 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.375
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
-Generation 06 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.325
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
-Generation 07 | Best fitness (avg guesses): 2.125 | Avg fitness: 2.319
-  Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+# RUN 1
+Generation 00 | Best fitness (avg guesses): 3.375 | Avg fitness: 3.763
+  Best individual: pdiv(max(digit_count, -1.36), mul(symbol_entropy, letter_freq_sum))
+Generation 01 | Best fitness (avg guesses): 3.375 | Avg fitness: 3.694
+  Best individual: pdiv(max(digit_count, -1.36), mul(symbol_entropy, letter_freq_sum))
+Generation 02 | Best fitness (avg guesses): 3.250 | Avg fitness: 3.481
+  Best individual: pdiv(max(digit_count, -1.36), mul(unique_letters, letter_freq_sum))
 
 === Finished GP training (Mathler) ===
-Best fitness (avg guesses): 2.125
-Best individual: add(sub(plus_count, plus_count), sub(sub(distinct_digits, -1.53), max(-1.59, symbol_entropy)))
+Best fitness (avg guesses): 3.250
+Best individual: pdiv(max(digit_count, -1.36), mul(unique_letters, letter_freq_sum))
 
-=== Demo Mathler game with evolved solver ===
-Target value is: 104
-(Secret expression is hidden until the end)
-Guess 1: 9*8+32  Feedback: [1, 0, 0, -1, 0, 1]
-Guess 2: 97+5+2  Feedback: [1, 1, 1, 0, -1, 1]
-Guess 3: 97+9-2  Feedback: [1, 1, 1, 1, 1, 1]
-SOLVED in 3 guesses!
-Secret expression was: 97+9-2
+
+# RUN 2
+Generation 00 | Best fitness (avg guesses): 4.667 | Avg fitness: 5.104
+  Best individual: max(plus_count, unique_letters)
+Generation 01 | Best fitness (avg guesses): 4.667 | Avg fitness: 4.969
+  Best individual: max(plus_count, unique_letters)
+Generation 02 | Best fitness (avg guesses): 4.667 | Avg fitness: 4.833
+  Best individual: max(plus_count, unique_letters)
+Generation 03 | Best fitness (avg guesses): 4.667 | Avg fitness: 4.792
+  Best individual: max(plus_count, unique_letters)
+
+=== Finished GP training (Mathler) ===
+Best fitness (avg guesses): 4.667
+Best individual: max(plus_count, unique_letters)
+
+
+# RUN 3
+Generation 00 | Best fitness (avg guesses): 5.000 | Avg fitness: 5.396
+  Best individual: max(plus_count, unique_letters)
+Generation 01 | Best fitness (avg guesses): 5.000 | Avg fitness: 5.208
+  Best individual: max(plus_count, unique_letters)
+Generation 02 | Best fitness (avg guesses): 5.000 | Avg fitness: 5.104
+  Best individual: max(plus_count, unique_letters)
+Generation 03 | Best fitness (avg guesses): 5.000 | Avg fitness: 5.073
+  Best individual: max(plus_count, unique_letters)
+
+=== Finished GP training (Mathler) ===
+Best fitness (avg guesses): 4.833
+Best individual: mul(positional_freq_sum, unique_letters)
